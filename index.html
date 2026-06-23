@@ -2613,7 +2613,7 @@ async function loadAnswerKey() {
             images.push(`questions/${i}.png`);
         }
         
-        await preloadAllImages();
+     // await preloadAllImages(); // ← KEEP IT COMMENTED OUT
         
         showToast('✅ Answer key loaded! Enter access code.', 'success', 3000);
         
