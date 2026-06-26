@@ -1463,7 +1463,7 @@ body.anti-sleep-active {
                 <!-- Welcome Note -->
                  <h1 style="font-size: 4.8em; margin-bottom: 10px; color: #4B0082;">
                             
-                   2E
+                  2E
                 </h1>
                 <h1 style="font-size: 2.8em; margin-bottom: 10px; color: #4B0082;">
                             
@@ -1726,11 +1726,11 @@ body.anti-sleep-active {
 
 let EXAM_SETUP = {
     subjects: [
-        { name: "ZOOLOGY", questions: 60, numerical: 0 },
-        { name: "CHEMISTRY", questions: 60, numerical: 0 }
+        { name: "BOTANY", questions: 60, numerical: 0 },
+        { name: "PHYSICS", questions: 60, numerical: 0 }
     ],
     duration: 120, // minutes
-    activeForForms: ["ZOOLOGY", "CHEMISTRY"],
+    activeForForms: ["BOTANY", "PHYSICS"],
     correctMark: 4,
     wrongMark: -1
 };
@@ -1913,7 +1913,7 @@ let systemTrayDetector = null;
 const subjects = EXAM_SETUP.subjects.map(s => s.name);
 let examData = {files: [], subjectNames: [], keys: [], originalOrder: [], questionTypes: []};
 let progress = null, timerInterval = null;
-
+let examEndTime = null; 
 
 function startAutoClick() {
     if (autoClickInterval) {
@@ -4428,28 +4428,45 @@ function updateSubmitButtonVisibility() {
 
 
 function startTimer() {
-  timerInterval = setInterval(() => {
-    progress.timeLeftSec--;
+    // Store the exact end time
+    const examEndTime = Date.now() + (EXAM_DURATION_MINUTES * 60 * 1000);
+    progress.timeLeftSec = EXAM_DURATION_MINUTES * 60;
     
-    const minutes = Math.floor(progress.timeLeftSec / 60);
-    const seconds = progress.timeLeftSec % 60;
-    const timerEl = document.getElementById('timerEl');
-    
-    timerEl.textContent = `🕒 ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    updateSubmitButtonVisibility();
-    if (progress.timeLeftSec <= 600) { document.getElementById('submitBtn').style.display = 'inline-block'; }
-    if (progress.timeLeftSec <= 300) timerEl.classList.add('blink');
-    
-    if (progress.timeLeftSec <= 0) {
-      clearInterval(timerInterval);
-      submitExam();
-    }
-    
-    if (progress.timeLeftSec % 60 === 0 && examInProgress) {
-      saveExamProgress();
-    }
-  }, 1000);
+    timerInterval = setInterval(() => {
+        // Calculate EXACT time left using real clock
+        const timeLeft = examEndTime - Date.now();
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            submitExam();
+            return;
+        }
+        
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        const timerEl = document.getElementById('timerEl');
+        
+        timerEl.textContent = `🕒 ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Update progress with accurate value
+        progress.timeLeftSec = Math.floor(timeLeft / 1000);
+        
+        // Show submit button at 10 minutes
+        if (timeLeft <= 600000) {
+            document.getElementById('submitBtn').style.display = 'inline-block';
+        }
+        
+        // Blink at 5 minutes
+        if (timeLeft <= 300000) {
+            timerEl.classList.add('blink');
+        }
+        
+        // Auto-save every minute
+        if (examInProgress && Math.floor(timeLeft / 1000) % 60 === 0) {
+            saveExamProgress();
+        }
+        
+    }, 200); // Check frequently, but ALWAYS based on real time
 }
 
 
